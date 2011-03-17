@@ -1,0 +1,67 @@
+GEM
+  remote: http://rubygems.org/
+  specs:
+    abstract (1.0.0)
+    activesupport (3.0.5)
+    bunny (0.6.0)
+    chef (0.9.14)
+      bunny (>= 0.6.0)
+      erubis
+      extlib
+      highline
+      json (<= 1.4.6, >= 1.4.4)
+      mixlib-authentication (>= 1.1.0)
+      mixlib-cli (>= 1.1.0)
+      mixlib-config (>= 1.1.2)
+      mixlib-log (>= 1.2.0)
+      moneta
+      ohai (>= 0.5.7)
+      rest-client (< 1.7.0, >= 1.0.4)
+      uuidtools
+    erubis (2.6.6)
+      abstract (>= 1.0.0)
+    extlib (0.9.15)
+    highline (1.6.1)
+    json (1.4.6)
+    mime-types (1.16)
+    mixlib-authentication (1.1.4)
+      mixlib-log
+    mixlib-cli (1.2.0)
+    mixlib-config (1.1.2)
+    mixlib-log (1.2.0)
+    moneta (0.6.0)
+    ohai (0.5.8)
+      extlib
+      json (<= 1.4.6, >= 1.4.4)
+      mixlib-cli
+      mixlib-config
+      mixlib-log
+      systemu
+    rack (1.2.2)
+    rake (0.8.7)
+    rest-client (1.6.1)
+      mime-types (>= 1.16)
+    sinatra (1.2.0)
+      rack (~> 1.1)
+      tilt (< 2.0, >= 1.2.2)
+    sinatra-config-file (0.6.1)
+      sinatra (~> 1.0)
+    spice (0.4.0)
+      mixlib-authentication
+      rest-client
+      yajl-ruby
+    systemu (1.2.0)
+    tilt (1.2.2)
+    uuidtools (2.1.2)
+    yajl-ruby (0.8.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  activesupport
+  chef (~> 0.9.14)
+  rake
+  sinatra (~> 1.2.0)
+  sinatra-config-file
+  spice (~> 0.4.0)
