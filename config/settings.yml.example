@@ -4,9 +4,8 @@ xen:
   password: "SUPERSECRET"
 
 chef:
-  host: "chef.example.com"
+  host: "http://chef.example.com"
   port: "4000"
-  scheme: "http"
   client_name: "xen-admin"
   key_file: "config/xen-admin.pem"
 
