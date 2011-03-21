@@ -2,9 +2,13 @@
 ## REQUIRED SETTINGS
 #
 
+# Flavor of the VM operating system to be installed. This must be the same as
+# the resulting chef node['os'] attribute
+flavor: 'Debian'
+
 # Name of the basic XenServer template to clone.
 # This MUST be a built-in template to allow provisioning
-template: 'Debian Squeeze 6.0 (64-bit)'
+template: 'Debian Lenny 5.0 (32-bit)'
 
 ## OPTIONAL SETTINGS
 #
@@ -46,7 +50,7 @@ memory:
 storage:
   # The UUID of the storage repository to provision disks to by default
   # Default: the configured default SR of the target server
-  default_sr: # use server default
+  #default_sr:
   # The LUNs to be created
   disks:
     # The Debian Squeeze template requires a boot disk of at least 8 GB

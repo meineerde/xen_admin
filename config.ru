@@ -1,2 +1,2 @@
 require './xen_admin'
-run XenAdmin
+run XenAdmin::Application
