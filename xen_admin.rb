@@ -39,6 +39,9 @@ class XenAdmin::Application < Sinatra::Base
   get '/bootstrap' do
     # TODO: This needs to be authenticated
     # This currently requires https://github.com/danryan/spice/pull/2
+
+    # find nodes that are not yet bootstrapped, i.e. they do not have any
+    # CPU info available
     available_nodes = JSON.parse(Spice::Search.node :q => "!cpu:[* TO *]")
     
     available_nodes['rows'].inject({}) do |result, node|
