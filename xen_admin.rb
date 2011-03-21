@@ -184,12 +184,6 @@ class XenAdmin::Application < Sinatra::Base
   end
   
   get '/' do
-    # redirect to("/bootstrap")
-    s = sign({
-      :name => "demo.hetzner.holgerjust.de",
-      :template => "squeeze"
-    })
-    
-    redirect url("/bootstrap/#{escape s}/start")
+    redirect to("/bootstrap")
   end
 end
