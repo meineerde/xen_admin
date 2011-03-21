@@ -15,7 +15,7 @@ module XenAdmin
           ret
         end
       end
-    
+
       def self.registered(app)
         app.helpers XenAPI::Helpers
       end

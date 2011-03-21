@@ -7,7 +7,7 @@ module XenAdmin
   module Helpers
     module XenTemplate
       module Helpers
-      
+
         def init_template(template_name, chef_node)
           @template_name = template_name
           @chef_node = chef_node
@@ -15,44 +15,44 @@ module XenAdmin
           raise ArgumentError unless template_name =~ /^[\w-]+$/
           raw_tmpl = File.read(File.join(settings.root, 'templates', "#{template_name}.yml"))
           @tmpl = YAML.load(ERB.new(raw_tmpl).result(binding))
-        
+
           # check require values
           raise ArgumentError.new("Xen Template was not defined") if tmpl_xen_template_label.empty?
           raise ArgumentError.new("Flavor was not defined") if tmpl_flavor.empty?
         end
-      
+
         def tmpl_xen_template_label
           @tmpl['template'].to_s
         end
-      
+
         def tmpl_name
           @template_name
         end
-      
+
         def tmpl_vm_label
           tmpl_default(:name)
         end
-      
+
         def tmpl_vm_description
           tmpl_default(:description, "")
         end
-      
+
         def tmpl_flavor
           @tmpl['flavor'].downcase
         end
-        
+
         def tmpl_locale
           tmpl_default(:locale, 'en_US')
         end
-        
+
         def tmpl_language
           tmpl_locale.split("_")[0]
         end
-        
+
         def tmpl_country
           @tmpl['country'] || tmpl_locale.split("_")[1]
         end
-      
+
         def tmpl_boot_params
           case tmpl_flavor
           when 'debian', 'ubuntu'
@@ -60,7 +60,7 @@ module XenAdmin
               :name => @chef_node['name'],
               :template => tmpl_name
             }
-                    
+
             [
               "auto=true",
               "url=" + url("/bootstrap/#{escape(sign bootstrap_data)}/preseed.cfg"),
@@ -73,7 +73,7 @@ module XenAdmin
             raise "Unknown Flavor #{@tmpl['flavor']}"
           end
         end
-      
+
         def tmpl_repository
           @tmpl['repository'] ||
           case tmpl_flavor
@@ -81,7 +81,7 @@ module XenAdmin
             @chef_node[flavor] && @chef_node[flavor]['archive_url']
           end
         end
-        
+
         def tmpl_repository_proxy
           if @tmpl.include? 'repository_proxy'
             @tmpl['repository_proxy']
@@ -93,14 +93,14 @@ module XenAdmin
             end
           end
         end
-        
+
         def tmpl_memory
           {
             :min => @tmpl['memory'] && @tmpl['memory']['min'] || 256.megabytes,
             :max => @tmpl['memory'] && (@tmpl['memory']['max'] || @tmpl['memory']['min']) || 256.megabytes
           }
         end
-    
+
         def tmpl_storage
           # TODO: use node values
           default_sr = @tmpl['storage'] && @tmpl['storage']['default_sr']
@@ -122,7 +122,7 @@ module XenAdmin
           end
           disks
         end
-    
+
         def tmpl_network
           interfaces = {}
 
@@ -131,7 +131,7 @@ module XenAdmin
             xenapi do |xen|
               @tmpl['network'].keys.sort.each_with_index do |key, id|
                 interface = @tmpl['network'][key]
-            
+
                 if interface['network'] =~ /^[[:xdigit:]]{8}-([[:xdigit:]]{4}-){3}[[:xdigit:]]{12}$/
                   network_ref = xen.network.get_by_uuid(interface['network'])
                 else
@@ -154,7 +154,7 @@ module XenAdmin
           else
             # No network interfaces specified. Create an interface for each
             # available auto-network.
-        
+
             # find networks to use
             network_refs = xenapi do |xen|
               xen.network.get_all.reject do |network_ref|
@@ -162,7 +162,7 @@ module XenAdmin
                 network['other_config']['automatic'] == 'false' || pifs.empty?
               end
             end
-        
+
             # create interface specifications
             network_refs.each_with_index do |ref, i|
               interfaces[(i+1).to_s] = {
@@ -174,7 +174,7 @@ module XenAdmin
           end
           interfaces
         end
-        
+
         def tmpl_install_interface
           if @tmpl['install_interface'].is_a? Hash
             interface = @tmpl['install_interface']
@@ -198,7 +198,7 @@ module XenAdmin
           end
           result
         end
-      
+
       private
         def tmpl_default(key, default=nil)
           if key.is_a? Hash
@@ -212,11 +212,11 @@ module XenAdmin
             @tmpl[tmpl_key] ||
             default
         end
-    
+
         def generate_mac
           "00:15:3e:" + (1..3).map{"%02x" % (rand*0xff)}.join(':')
         end
-    
+
         def xen_default_sr
           # find the default_sr from xen
           xenapi do |xen|
@@ -224,7 +224,7 @@ module XenAdmin
             raise "Multiple Pools found for Xen server" unless pool_refs.size == 1
 
             sr_ref = xen.pool.get_default_SR(pool_refs[0])
-            raise "Can't find default_sr for XenServer pool." if sr_ref.nil? || sr_ref == "OpaqueRef:NULL" 
+            raise "Can't find default_sr for XenServer pool." if sr_ref.nil? || sr_ref == "OpaqueRef:NULL"
             xen.SR.get_uuid(sr_ref)
           end
         end

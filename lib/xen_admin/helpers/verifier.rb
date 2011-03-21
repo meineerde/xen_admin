@@ -12,14 +12,13 @@ module XenAdmin
             :generated_at => Time.now
           })
         end
-    
+
         def verify(signed_data)
           data = verifier.verify(signed_data)
           #halt 403, "Stale data detected" if Time.now - data[:generated_at] > settings.session_lifetime.to_i
           data[:data]
         end
       end
-    
 
       def self.registered(app)
         app.configure do |c|
