@@ -46,6 +46,14 @@ repository: http://ftp.de.debian.org/debian/
 # Default: Search for node with apt::cacher recipe or none
 #repository_proxy: http://apt_cache.example.com:3142
 
+# Number of virtual CPUs
+# Default: 1
+vcpus: 2
+
+# Auto-start on xen host boot
+# Default: true
+auto_poweron: true
+
 # Main memory to be allocated by the new VM.
 # If you have a XenServer license to be able to use Dynamic Memory you can
 # use a range between `min` and `max` here. Else just set only `min`.

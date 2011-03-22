@@ -116,6 +116,12 @@ class XenAdmin::Application < Sinatra::Base
       # Boot parameters
       xen.VM.set_PV_args(vm_ref, tmpl_boot_params + " " + vm['PV_args'])
 
+      xen.VM.remove_from_other_config(vm_ref, 'auto_poweron')
+      xen.VM.add_to_other_config(vm_ref, 'auto_poweron', tmpl_auto_poweron)
+
+      # Virtual CPUs
+      xen.vm.set_VCPUs_max(vm_ref, tmpl_vcpus)
+
       # Memory
       xen.VM.set_memory_dynamic_min(vm_ref, tmpl_memory[:min].to_s)
       xen.VM.set_memory_dynamic_max(vm_ref, tmpl_memory[:max].to_s)

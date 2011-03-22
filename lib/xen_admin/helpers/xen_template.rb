@@ -94,6 +94,14 @@ module XenAdmin
           end
         end
 
+        def tmpl_auto_poweron
+          @tmpl['auto_poweron'].to_s.downcase == "true" || "false"
+        end
+
+        def tmpl_vcpus
+          @tmpl['vcpus'] || '1'
+        end
+
         def tmpl_memory
           {
             :min => @tmpl['memory'] && @tmpl['memory']['min'] || 256.megabytes,
