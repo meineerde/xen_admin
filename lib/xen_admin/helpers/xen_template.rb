@@ -88,7 +88,7 @@ module XenAdmin
           else
             case tmpl_flavor
             when 'debian', 'ubuntu'
-              proxies = JSON.parse(Spice::Search.node('recipes:apt\:\:cacher'))
+              proxies = JSON.parse(Spice::Search.node(:q => 'recipes:apt\:\:cacher'))
               "http://#{proxies['rows'][0]['ipaddress']}:3142" if proxies['total'] > 0
             end
           end

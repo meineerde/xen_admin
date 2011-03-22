@@ -45,7 +45,6 @@ repository: http://ftp.de.debian.org/debian/
 # Proxy used to connect to the Repository
 # Default: Search for node with apt::cacher recipe or none
 #repository_proxy: http://apt_cache.example.com:3142
-repository_proxy:
 
 # Main memory to be allocated by the new VM.
 # If you have a XenServer license to be able to use Dynamic Memory you can
