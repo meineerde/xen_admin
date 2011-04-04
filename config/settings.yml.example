@@ -10,3 +10,12 @@ chef:
   key_file: "config/xen-admin.pem"
 
 session_lifetime: "600"
+
+vnc_proxy_socket: /tmp/vncproxy.sock
+
+# We assume that we are the only ones to use this port range
+# Make sure to configure your ephemeral ports accordingly.
+# http://www.ncftp.com/ncftpd/doc/misc/ephemeral_ports.html#Linux
+vnc_proxy_port_range:
+  from: 15000
+  to: 32000

@@ -4,13 +4,14 @@ module XenAdmin
   module Helpers
     module XenAPI
       module Helpers
-        def xenapi(&block)
+        def xenapi(options={}, &block)
           session = ::XenAPI::Session.new(settings.xen['host'])
           begin
             session.login_with_password(settings.xen['username'], settings.xen['password'])
+            @session_id = session.session_id
             ret = yield session
           ensure
-            session.logout
+            session.logout unless options[:keep_session]
           end
           ret
         end

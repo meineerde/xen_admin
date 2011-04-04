@@ -53,6 +53,27 @@ class XenAdmin::Application < Sinatra::Base
     def partial(page, options={})
       erb page, options.merge!(:layout => false)
     end
+
+    def port_available?(port)
+      # TODO: keep global list of recently used ports
+      # with timeout > timeout of vncauthproxy
+
+      {
+        Socket::Constants::AF_INET => "0.0.0.0",
+        Socket::Constants::AF_INET6 => "::"
+      }.each do |proto, addr|
+        begin
+          socket = Socket.new(proto, Socket::Constants::SOCK_STREAM, 0)
+          sockaddr = Socket.sockaddr_in(port, addr)
+          socket.bind( sockaddr )
+        rescue Errno::EADDRINUSE:
+          return false
+        ensure
+          socket.close
+        end
+      end
+      return true
+    end
   end
 
   register XenAdmin::Helpers::Verifier
@@ -185,6 +206,53 @@ class XenAdmin::Application < Sinatra::Base
 
     # Indicate that the ressource was created
     201
+  end
+
+  get "/vnc/:host" do
+    xenapi(:keep_session => true) do |xen|
+      if is_uuid(params[:host])
+        xen.VM.get_by_uuid(params[:host])
+      else
+        vm_ref = xen.VM.get_by_name_label(params[:host])[0]
+      end
+      halt 404 unless vm_ref
+
+      console_ref = xen.VM.get_consoles(vm_ref)[0]
+      uri = URI.parse(xen.console.get_location(console_ref))
+
+      # Now connect to vncauthproxy's socket and setup a new forward
+      socket = UNIXSocket.new("/tmp/vncproxy.sock")
+
+      # TODO: generate this from a range
+      vnc_port = nil
+      while vnc_port == nil
+        port = rand(settings.vnc_proxy_port_range['to'].to_i - settings.vnc_proxy_port_range['from'].to_i)
+        port += settings.vnc_proxy_port_range['from'].to_i
+
+        vnc_port = port if port_available?(port)
+      end
+
+      # random password, 12 characters
+      password = ActiveSupport::SecureRandom.base64(9)
+
+      port = uri.scheme.downcase == "https" ? "#{uri.port}+" : uri.port
+      socket_str = [
+        vnc_port,
+        uri.host,
+        port,
+        password,
+        "#{uri.request_uri}&session_id=#{@session_id}"
+      ].join(":")
+      socket.puts(socket_str)
+      halt(500, "Something went wrong") unless socket.read.start_with?("OK")
+
+      {
+        :host => request.host,
+        :port => vnc_port,
+        :password => password,
+        :require_ssl => true
+      }.to_json
+    end
   end
 
   get '/' do

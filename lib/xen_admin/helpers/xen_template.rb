@@ -140,7 +140,7 @@ module XenAdmin
               @tmpl['network'].keys.sort.each_with_index do |key, id|
                 interface = @tmpl['network'][key]
 
-                if interface['network'] =~ /^[[:xdigit:]]{8}-([[:xdigit:]]{4}-){3}[[:xdigit:]]{12}$/
+                if is_uuid(interface['network'])
                   network_ref = xen.network.get_by_uuid(interface['network'])
                 else
                   network_ref = xen.network.get_by_name_label(interface['network'])
@@ -205,6 +205,10 @@ module XenAdmin
             }
           end
           result
+        end
+
+        def is_uuid(str)
+          str =~ /^[[:xdigit:]]{8}-([[:xdigit:]]{4}-){3}[[:xdigit:]]{12}$/
         end
 
       private
