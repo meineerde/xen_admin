@@ -3,7 +3,7 @@ module XenAdmin
     module Verifier
       module Helpers
         def verifier
-          @verifier ||= ActiveSupport::MessageVerifier.new(settings.secret)
+          @verifier ||= ActiveSupport::MessageVerifier.new(settings.secret, 'SHA256')
         end
 
         def sign(data)
@@ -15,7 +15,7 @@ module XenAdmin
 
         def verify(signed_data)
           data = verifier.verify(signed_data)
-          #halt 403, "Stale data detected" if Time.now - data[:generated_at] > settings.session_lifetime.to_i
+          halt 403, "Stale data detected" if Time.now - data[:generated_at] > settings.session_lifetime.to_i
           data[:data]
         end
       end
