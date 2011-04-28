@@ -166,8 +166,8 @@ module XenAdmin
             # find networks to use
             network_refs = xenapi do |xen|
               xen.network.get_all.reject do |network_ref|
-                pifs = xen.network.get_PIFs(network_ref)
-                network['other_config']['automatic'] == 'false' || pifs.empty?
+                network = xen.network.get_other_config(network_ref)
+                network['automatic'] == 'false' || network['is_guest_installer'] == 'true'
               end
             end
 
