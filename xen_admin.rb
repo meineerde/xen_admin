@@ -20,31 +20,33 @@ class XenAdmin::Application < Sinatra::Base
     config_file "config/#{environment}.settings.yml"
 
     # configure spice for accessing the chef server
-    spice = settings.chef
-    spice['key_file'] = File.expand_path(spice['key_file'], root) if spice['key_file']
-    spice['scheme'], spice['host'] = spice['host'].split("://")[0..1].collect(&:downcase)
-
-    Spice.setup do |s|
-      %w(host port scheme client_name key_file).each do |config|
-        s.send("#{config}=", spice[config]) if spice[config]
-      end
-    end
-    Spice.connect!
+    # spice = settings.chef
+    # spice['key_file'] = File.expand_path(spice['key_file'], root) if spice['key_file']
+    # spice['scheme'], spice['host'] = spice['host'].split("://")[0..1].collect(&:downcase)
+    #
+    # Spice.setup do |s|
+    #   %w(host port scheme client_name key_file).each do |config|
+    #     s.send("#{config}=", spice[config]) if spice[config]
+    #   end
+    # end
+    # Spice.connect!
   end
 
   helpers do
-    def get_node(name)
+    def get_node(hostname)
+      return {'hostname' => hostname}
+
       # Load the node data from chef
       # Fresh nodes may take some time until they get caught up by ther API.
       waited = 0
-      node = JSON.parse(Spice::Node[name])
+      node = JSON.parse(Spice::Node[hostname])
       while (node.empty? || node.include?('error')) && waited < 12 do
         sleep 2
         waited += 2
-        node = JSON.parse(Spice::Node[name])
+        node = JSON.parse(Spice::Node[hostname])
       end
       if node.empty? || node.include?('error')
-        raise "Could not load node data for #{name}"
+        raise "Could not load node data for #{hostname}"
       else
         node
       end
@@ -93,15 +95,10 @@ class XenAdmin::Application < Sinatra::Base
     end.to_json
   end
 
-  get '/bootstrap/:id/*' do
-
-    data = verify(params[:id])
-
+  get %r{/bootstrap/([^/]+)/((?:[\w\/-]|\.(?!\.))+)} do |id, seed|
+    data = verify(id)
     node = get_node(data[:name])
     init_template(data[:template], node)
-
-    seed = params[:splat][0]
-    halt 403 unless seed =~ /^([\w\/-]|\.(?!\.))+$/
 
     content_type "text/plain"
     erb :"#{data[:template]}/#{seed}", :locals => {:node => node}
@@ -122,29 +119,41 @@ class XenAdmin::Application < Sinatra::Base
       # check target configuration
       halt 403, "XenServer Template #{tmpl_xen_template_label} not found" unless xen_template_refs.size == 1
 
-      ## Cloning the VM
-      vm_ref = xen.VM.clone(xen_template_refs[0], tmpl_vm_label)
-      vm = xen.VM.get_record(vm_ref)
+      # get the template data
+      vm = xen.VM.get_record(xen_template_refs[0])
 
-      ## Configure the new VM
-      # Description
-      xen.VM.set_name_description(vm_ref, tmpl_vm_description)
+      mem = tmpl_memory
+      vm.merge!({
+        "name_label" => tmpl_vm_label,
+        "name_description" => tmpl_vm_description,
+        "PV_args" => "#{tmpl_boot_params} #{vm["PV_args"]}",
 
-      # Install source
-      xen.VM.add_to_other_config(vm_ref, "install-repository", tmpl_repository)
+        "VCPUs_max" => tmpl_vcpus,
+        "VCPUs_at_startup" => tmpl_vcpus,
 
-      # Boot parameters
-      xen.VM.set_PV_args(vm_ref, tmpl_boot_params + " " + vm['PV_args'])
+        "memory_dynamic_max" => mem[:dynamic_max],
+        "memory_dynamic_min" => mem[:dynamic_min],
+        "memory_static_min" => mem[:min],
+        "memory_static_max" => mem[:max],
+      })
 
-      xen.VM.remove_from_other_config(vm_ref, 'auto_poweron')
-      xen.VM.add_to_other_config(vm_ref, 'auto_poweron', tmpl_auto_poweron)
+      # build the XML specification for storage provision
+      disks = tmpl_storage.collect do |device, values|
+        values = {:device => device, :type => 'system'}.merge(values)
+        disk = values.collect{ |k, v| "#{k}=\"#{v}\""}.join(" ")
+        "<disk #{disk} />"
+      end
+      provision = "<provision>#{disks.join}</provision>"
 
-      # Virtual CPUs
-      xen.vm.set_VCPUs_max(vm_ref, tmpl_vcpus)
+      vm["other_config"].merge!({
+        "install-repository" => tmpl_repository,
+        "auto_poweron" => tmpl_auto_poweron,
+        "disks" => provision,
+        "default_template" => "false"
+      })
 
-      # Memory
-      xen.VM.set_memory_dynamic_min(vm_ref, tmpl_memory[:min].to_s)
-      xen.VM.set_memory_dynamic_max(vm_ref, tmpl_memory[:max].to_s)
+      ## now create the new VM
+      vm_ref = xen.VM.create(vm)
 
       ## Create network interfaces
       tmpl_network.each_pair do |id, device|
@@ -160,20 +169,7 @@ class XenAdmin::Application < Sinatra::Base
         )
       end
 
-      ## Provision the storage
-      # build the provision XML specification
-      disks = tmpl_storage.collect do |device, values|
-        values = {:device => device, :type => 'system'}.merge(values)
-        disk = values.collect{ |k, v| "#{k}=\"#{v}\""}.join(" ")
-        "<disk #{disk} />"
-      end
-      provision = "<provision>#{disks.join}</provision>"
-
-      # setting the provisioning XML to the VM
-      xen.VM.remove_from_other_config(vm_ref, 'disks')
-      xen.VM.add_to_other_config(vm_ref, 'disks', provision)
-
-      # provision the disks
+      ## Actually provision the disks
       xen.VM.provision(vm_ref)
 
       ## Add the CD drive
@@ -204,8 +200,7 @@ class XenAdmin::Application < Sinatra::Base
       xen.VM.start(vm_ref, false, false)
     end
 
-    # Indicate that the ressource was created
-    201
+    201 # Resource created
   end
 
   get "/vnc/:host" do

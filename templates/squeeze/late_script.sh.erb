@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+run_install() {
+  script="$1"
+  mkdir -p /tmp/$(dirname "${script}")
+  preseed_fetch "<%= bootstrap_url %>${script}" "/tmp/${script}"
+  sh "/tmp/${script}"
+}
+
+# Xen Tools
+run_install "xs-tools.sh"
+
+# install RVM
+#run_install "rvm/install.sh"
+# run_install "rvm/chef.sh"

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e
+
+mkdir -p /target/tmp/rvm
+cat > /target/tmp/rvm/chef.sh <<'!EOF!'
+#!/bin/bash
+
+# load RVM into the current shell session
+source /etc/profile.d/rvm.sh
+
+# setup RVM gemset for chef
+rvm gemset create chef
+rvm gemset use chef
+gem install chef <%= "-v '#{tmpl_chef_version}'" unless tmpl_chef_version.blank? %>
+
+mkdir -p /etc/chef
+cat > /etc/chef/chef-solo.rb <<EOF
+require 'socket'
+
+file_cache_path "/var/chef-solo"
+cookbook_path "/var/chef-solo/cookbooks"
+role_path "/var/chef-solo/roles"
+json_attribs "/etc/chef/#{Socket.gethostname}.json"
+recipe_url "http://dev.finn.de/files/redmine-config-congstar/chef-solo.tar.gz"
+EOF
+!EOF!
+
+chmod +x /target/tmp/rvm/chef.sh
+in-target /bin/bash /tmp/rvm/chef.sh

@@ -1,4 +1,5 @@
 require 'active_support/core_ext/numeric'
+require 'active_support/core_ext/object'
 
 require 'xen_admin/helpers/verifier'
 require 'xen_admin/helpers/xen_api'
@@ -21,6 +22,14 @@ module XenAdmin
           raise ArgumentError.new("Flavor was not defined") if tmpl_flavor.empty?
         end
 
+        def bootstrap_url(path="")
+          @bootstrap_data ||= {
+            :name => @chef_node['name'],
+            :template => tmpl_name
+          }
+          url("/bootstrap/#{escape(sign(@bootstrap_data))}/#{path}")
+        end
+
         def tmpl_xen_template_label
           @tmpl['template'].to_s
         end
@@ -30,7 +39,7 @@ module XenAdmin
         end
 
         def tmpl_vm_label
-          tmpl_default(:name)
+          tmpl_default(:hostname)
         end
 
         def tmpl_vm_description
@@ -42,8 +51,13 @@ module XenAdmin
         end
 
         def tmpl_locale
-          tmpl_default(:locale, 'en_US')
+          tmpl_default(:locale, 'en_US.UTF8')
         end
+
+        def tmpl_timezone
+          tmpl_default(:timezone, 'Europe/Berlin')
+        end
+
 
         def tmpl_language
           tmpl_locale.split("_")[0]
@@ -56,14 +70,10 @@ module XenAdmin
         def tmpl_boot_params
           case tmpl_flavor
           when 'debian', 'ubuntu'
-            bootstrap_data = {
-              :name => @chef_node['name'],
-              :template => tmpl_name
-            }
 
             [
               "auto=true",
-              "url=" + url("/bootstrap/#{escape(sign bootstrap_data)}/preseed.cfg"),
+              "url=" + bootstrap_url('preseed.cfg'),
               "locale=" + tmpl_default(:locale, 'en_US'),
               "country=" + tmpl_default(:country, '"United States"'),
               "hostname=" + tmpl_default(:hostname, ActiveSupport::SecureRandom.hex(5)),
@@ -88,24 +98,35 @@ module XenAdmin
           else
             case tmpl_flavor
             when 'debian', 'ubuntu'
-              proxies = JSON.parse(Spice::Search.node(:q => 'recipes:apt\:\:cacher'))
-              "http://#{proxies['rows'][0]['ipaddress']}:3142" if proxies['total'] > 0
+              # proxies = JSON.parse(Spice::Search.node(:q => 'recipes:apt\:\:cacher'))
+              # "http://#{proxies['rows'][0]['ipaddress']}:3142" if proxies['total'] > 0
             end
           end
         end
 
         def tmpl_auto_poweron
-          @tmpl['auto_poweron'].to_s.downcase == "true" || "false"
+          @tmpl['auto_poweron'].to_s.downcase == 'true' ? 'true' : 'false'
         end
 
         def tmpl_vcpus
-          @tmpl['vcpus'] || '1'
+          @tmpl['vcpus'].to_s || '1'
         end
 
         def tmpl_memory
+          min = max = 256.megabytes
+          if @tmpl['memory']
+            min = @tmpl['memory']['min'] unless @tmpl['memory']['min'].blank?
+            max = @tmpl['memory']['max'].blank? ? @tmpl['memory']['min'] : @tmpl['memory']['max']
+
+            dynamic_min = @tmpl['memory']['dynamic_min'].blank? ? min : @tmpl['memory']['dynamic_min']
+            dynamic_max = @tmpl['memory']['dynamic_max'].blank? ? max : @tmpl['memory']['dynamic_max']
+          end
+
           {
-            :min => @tmpl['memory'] && @tmpl['memory']['min'] || 256.megabytes,
-            :max => @tmpl['memory'] && (@tmpl['memory']['max'] || @tmpl['memory']['min']) || 256.megabytes
+            :min => min.to_s,
+            :max => max.to_s,
+            :dynamic_min => min.to_s,
+            :dynamic_max => max.to_s
           }
         end
 
@@ -205,6 +226,10 @@ module XenAdmin
             }
           end
           result
+        end
+
+        def tmpl_chef_version
+          "0.10.0"
         end
 
         def is_uuid(str)

@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+mkdir /target/tmp/rvm
+cat > /target/tmp/rvm/install.sh <<'!EOF!'
+#!/bin/bash
+
+# Install RVM
+curl -s https://rvm.beginrescueend.com/install/rvm -o /tmp/rvm/installer
+chmod +x /tmp/rvm/installer
+/tmp/rvm/installer --version latest
+
+default_ruby="ree-1.8.7-2011.03"
+
+# load RVM into the current shell session
+source /etc/profile.d/rvm.sh
+
+# install default ruby
+rvm install "${default_ruby}"
+rvm use "${default_ruby}" --default
+
+echo "gem: --no-rdoc --no-ri" > /etc/gemrc
+!EOF!
+
+chmod +x /target/tmp/rvm/install.sh
+in-target /bin/bash /tmp/rvm/install.sh

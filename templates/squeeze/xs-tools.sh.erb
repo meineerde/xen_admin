@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+cat > /target/tmp/xs-tools.sh <<'!EOF!'
+#!/bin/bash
+
+mount -r /dev/cdrom /mnt
+/mnt/Linux/install.sh -d debian -m 6 -n
+umount /mnt
+!EOF!
+
+chmod +x /target/tmp/xs-tools.sh
+in-target /bin/bash /tmp/xs-tools.sh
